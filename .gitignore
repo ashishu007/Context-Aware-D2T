@@ -6,6 +6,23 @@ __pycache__/
 # C extensions
 *.so
 
+*.ipynb
+*.docx
+.DS_Store
+
+misc/
+notebooks/
+models/
+hist_info/
+classifs/
+sys_gens/
+
+average_stats/
+doubles/
+nba_standings/
+standings/
+streaks/
+
 # Distribution / packaging
 .Python
 build/
