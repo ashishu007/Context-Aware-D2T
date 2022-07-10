@@ -16,6 +16,7 @@ models/
 hist_info/
 classifs/
 sys_gens/
+examples/
 
 average_stats/
 doubles/

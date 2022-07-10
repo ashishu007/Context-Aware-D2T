@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import argparse, json, pickle
 from collections import Counter
 from team_themes import TeamStanding, TeamStreak
@@ -7,7 +8,7 @@ from bert_utils import BertDataLoader, BertThemeClassifier
 from transformers import AutoModelForSequenceClassification
 
 
-def main(FTR='text', CLF='rf', THEME='streak', DOWNSAMPLE=False):
+def main(FTR='text', CLF='rf', THEME='streak', DOWNSAMPLE=False, SAVE_TO_DISK=False):
 
     if CLF == 'if':
         assert DOWNSAMPLE == False, 'Downsampling not supported for Isolation Forest as it is an anomaly detection algorithm'
@@ -21,6 +22,13 @@ def main(FTR='text', CLF='rf', THEME='streak', DOWNSAMPLE=False):
 
     print('Processing data...')
     all_data = theme_obj.get_theme_train_val_test_data()
+
+    if SAVE_TO_DISK:
+        print('Saving data to disk...')
+        for part in ['train', 'validation', 'test']:
+            df = pd.DataFrame(all_data[part])
+            df.to_csv(f'data/{THEME}/{part}_{FTR}.csv', index=False)
+        return 
 
     if CLF == 'bert':
         clf_obj = BertThemeClassifier()
@@ -87,10 +95,11 @@ if __name__ == "__main__":
     argParser.add_argument("-do_down", "--do_down", help="do downsampling", action="store_true")
     argParser.add_argument("-theme", "--theme", help="across-event theme", default='standing', \
                             choices=['streak', 'standing', 'double', 'average'])
+    argParser.add_argument("-std", "--std", help="save data to disk", action="store_true")
 
     args = argParser.parse_args()
     print(args)
 
-    main(args.ftr, args.clf, args.theme, args.do_down)
+    main(args.ftr, args.clf, args.theme, args.do_down, args.std)
     print("Done!!!")
 

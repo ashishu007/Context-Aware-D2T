@@ -1,0 +1,8 @@
+-f https://download.pytorch.org/whl/torch_stable.html
+numpy
+jsonpickle
+scikit-learn
+torch
+torchvision
+transformers
+tqdm
