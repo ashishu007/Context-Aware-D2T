@@ -20,6 +20,7 @@ examples/
 gpt2-finetuned/
 output*/
 roberta-finetuned/
+pet_models/
 
 average_stats/
 doubles/

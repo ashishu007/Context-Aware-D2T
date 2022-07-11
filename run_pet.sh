@@ -1,7 +1,8 @@
 # use PET with fine-tuned RoBERTa model
 # nvidia-docker run --rm -it --name themes -v /raid/1716293:/check -w /check pytorch/pytorch:1.9.0-cuda10.2-cudnn7-devel bash
+
 gpu=$1
-THEME=streak
+THEME=$2
 PATTERN_IDS=0
 DATA_DIR=data/$THEME
 
@@ -14,6 +15,33 @@ TASK=theme-classifier
 echo "Running pattern id: $PATTERN_IDS with $MODEL_TYPE model and $TASK task"
 echo "Models will be saved at: $OUTPUT_DIR"
 
+
+echo "\n\nPET Training\n\n"
+CUDA_VISIBLE_DEVICES=$gpu python3 pet_cli.py \
+    --method pet \
+    --pattern_ids $PATTERN_IDS \
+    --data_dir $DATA_DIR \
+    --model_type $MODEL_TYPE \
+    --model_name_or_path $MODEL_NAME_OR_PATH \
+    --task_name $TASK \
+    --output_dir $OUTPUT_DIR \
+    --do_train \
+    --do_eval \
+    --pet_per_gpu_eval_batch_size 16 \
+    --pet_per_gpu_train_batch_size 8 \
+    --pet_gradient_accumulation_steps 8 \
+    --pet_max_steps 250 \
+    --pet_max_seq_length 64 \
+    --pet_repetitions 1 \
+    --sc_per_gpu_train_batch_size 4 \
+    --sc_per_gpu_unlabeled_batch_size 8 \
+    --sc_gradient_accumulation_steps 8 \
+    --sc_max_steps 1000 \
+    --sc_max_seq_length 64 \
+    --sc_repetitions 1
+
+
+echo "\n\nSequence Classifier Training\n\n"
 CUDA_VISIBLE_DEVICES=$gpu python3 pet_cli.py \
     --method sequence_classifier \
     --pattern_ids $PATTERN_IDS \
@@ -28,12 +56,15 @@ CUDA_VISIBLE_DEVICES=$gpu python3 pet_cli.py \
     --pet_per_gpu_train_batch_size 8 \
     --pet_gradient_accumulation_steps 8 \
     --pet_max_steps 250 \
-    --pet_max_seq_length 128 \
+    --pet_max_seq_length 64 \
     --pet_repetitions 1 \
     --sc_per_gpu_train_batch_size 4 \
     --sc_per_gpu_unlabeled_batch_size 8 \
     --sc_gradient_accumulation_steps 8 \
     --sc_max_steps 1000 \
-    --sc_max_seq_length 128 \
+    --sc_max_seq_length 64 \
     --sc_repetitions 1
 
+
+echo "\n\nSequence Classifier Testing\n\n"
+CUDA_VISIBLE_DEVICES=$gpu python3 main.py -ftr text -clf pet -theme $THEME
