@@ -22,7 +22,7 @@ do
             if [ "$clf_name" = 'rf' ] || [ "$clf_name" = 'svm' ] || [ "$clf_name" = 'bert' ]; then
                 echo " "
                 echo "Running $clf_name classifier with $ftr_type features with downsampling"
-                CUDA_VISIBLE_DEVICES=$gpu python3 main.py -ftr $ftr_type -clf $clf_name -do_down -theme $theme
+                CUDA_VISIBLE_DEVICES=$gpu python3 main.py -ftr $ftr_type -clf $clf_name -down -theme $theme
             fi
 
             echo " "

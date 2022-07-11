@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 
 def plot_res(res_dict, theme, metric):
 
-    N = 5
+    N = 6
     ind = np.arange(N)
-    width = 0.15
+    width = 0.10
 
     fig = plt.figure(figsize=(15, 10))
     ax = fig.add_subplot(111)
@@ -47,7 +47,7 @@ def plot_res(res_dict, theme, metric):
 
 for theme in ['streak', 'standing']:
 
-    clfs = ['rf', 'if', 'svm', 'bert', 'pet']
+    clfs = ['rf', 'if', 'svm', 'bert', 'pet', 'tpot']
     ftrs = ['text', 'num']
 
     f1s, accs, mf1s, precs, recs, fbetas = {}, {}, {}, {}, {}, {}
@@ -62,6 +62,8 @@ for theme in ['streak', 'standing']:
                 elif clf == 'if' and do_down == 'yes':
                     clf_results = empty_js
                 elif (clf == 'pet' and ftr == 'num') or (clf == 'pet' and do_down == 'yes'):
+                    clf_results = empty_js
+                elif (clf == 'tpot' and ftr == 'text') or (clf == 'tpot' and do_down == 'no'):
                     clf_results = empty_js
                 else:
                     js = json.load(open(f"results/{theme}/{clf}-{ftr}-down_{do_down}.json"))

@@ -2,9 +2,9 @@ import numpy as np
 import pandas as pd
 import argparse, json, pickle
 from collections import Counter
-from utils import DataLoader, Classifier
 from team_themes import TeamStanding, TeamStreak
 from bert_utils import BertDataLoader, BertThemeClassifier
+from utils import DataLoader, Classifier, TpotThemeClassifier
 from transformers import AutoModelForSequenceClassification
 from sklearn.metrics import accuracy_score, f1_score, fbeta_score, precision_score, recall_score, classification_report
 
@@ -74,9 +74,9 @@ def main(FTR='text', CLF='rf', THEME='streak', DOWNSAMPLE=False, SAVE_TO_DISK=Fa
 
         if CLF == 'bert':
             print('Training BERT model...')
-            trained_model, tokenizer = clf_obj.train(dataset)
+            model, tokenizer = clf_obj.train(dataset)
             model_path = f"models/{THEME}/{CLF}-down_{'yes' if DOWNSAMPLE else 'no'}"
-            trained_model.save_pretrained(model_path)
+            model.save_pretrained(model_path)
             tokenizer.save_pretrained(model_path)
             print(f'Saved model to {model_path}')
 
@@ -91,8 +91,15 @@ def main(FTR='text', CLF='rf', THEME='streak', DOWNSAMPLE=False, SAVE_TO_DISK=Fa
         print(Counter(test_pred))
 
     else:
-        clf_obj = Classifier(CLF)
-        dl_obj = DataLoader(ftr_type=FTR, downsample=DOWNSAMPLE)
+        if CLF == 'tpot':
+            print('This is using tpot model...')
+            assert FTR == 'num', 'TPOT only works with numerical features'
+            assert DOWNSAMPLE == True, 'TPOT only works with downsampling (as of now)'
+            clf_obj = TpotThemeClassifier(theme=THEME)
+            dl_obj = DataLoader(ftr_type=FTR, downsample=DOWNSAMPLE)
+        else:
+            clf_obj = Classifier(CLF)
+            dl_obj = DataLoader(ftr_type=FTR, downsample=DOWNSAMPLE)
 
         train_x, train_y, val_x, val_y, test_x, test_y = dl_obj.prep_data(all_data)
         print(f"Train: {train_x.shape} {train_y.shape}\tVal: {val_x.shape} {val_y.shape}\tTest: {test_x.shape} {test_y.shape}")
@@ -107,12 +114,11 @@ def main(FTR='text', CLF='rf', THEME='streak', DOWNSAMPLE=False, SAVE_TO_DISK=Fa
         pickle.dump(model, open(f'models/{THEME}/{CLF}-{FTR}-down_{"yes" if DOWNSAMPLE else "no"}.pkl', 'wb'))
 
         print('Predicting...')
-        # val_pred = clf_obj.predict(model, val_x)
-        test_pred = clf_obj.predict(model, test_x)
+        trained_model = pickle.load(open(f'models/{THEME}/{CLF}-{FTR}-down_{"yes" if DOWNSAMPLE else "no"}.pkl', 'rb'))
+        test_pred = clf_obj.predict(trained_model, test_x)
 
     np.save(open(f'preds/{THEME}/{CLF}-{FTR}-down_{"yes" if DOWNSAMPLE else "no"}.npy', 'wb'), test_pred)
     print('Calculating performance...')
-    # val_res_dict, val_clf_report = clf_obj.get_clf_report(val_y, val_pred)
     test_res_dict, test_clf_report = get_clf_report(test_y, test_pred)
 
     test_res = {}
@@ -122,8 +128,6 @@ def main(FTR='text', CLF='rf', THEME='streak', DOWNSAMPLE=False, SAVE_TO_DISK=Fa
             "test": {f"{k}": v for k, v in dict(Counter(test_y)).items()}
         }
 
-    # print(f'Validation results: {val_res_dict}')
-    # print(f'Validation classification report: {val_clf_report}')
     print(f'Test results: {test_res_dict}')
     print(f'Test classification report: {test_clf_report}')
 
@@ -133,17 +137,18 @@ def main(FTR='text', CLF='rf', THEME='streak', DOWNSAMPLE=False, SAVE_TO_DISK=Fa
 
 if __name__ == "__main__":
     argParser = argparse.ArgumentParser()
+    argParser.add_argument("-std", "--std", help="save data to disk", action="store_true")
+    argParser.add_argument("-down", "--down", help="do downsampling", action="store_true")
+    argParser.add_argument("-aug", "--aug", help="augment data for pet training", action="store_true")
     argParser.add_argument("-ftr", "--ftr", help="feature type: numerical or textual", default="text", choices=["text", "num"])
-    argParser.add_argument("-clf", "--clf", help="classification algorithm", default="rf", choices=["rf", "svm", "bert", "if", "pet"])
-    argParser.add_argument("-do_down", "--do_down", help="do downsampling", action="store_true")
+    argParser.add_argument("-clf", "--clf", help="classification algorithm", default="rf", \
+                            choices=["rf", "svm", "bert", "if", "pet", 'tpot'])
     argParser.add_argument("-theme", "--theme", help="across-event theme", default='standing', \
                             choices=['streak', 'standing', 'double', 'average'])
-    argParser.add_argument("-std", "--std", help="save data to disk", action="store_true")
-    argParser.add_argument("-aug", "--aug", help="augment data for pet training", action="store_true")
 
     args = argParser.parse_args()
     print(args)
 
-    main(args.ftr, args.clf, args.theme, args.do_down, args.std, args.aug)
+    main(args.ftr, args.clf, args.theme, args.down, args.std, args.aug)
     print("Done!!!")
 

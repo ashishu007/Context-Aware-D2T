@@ -15,7 +15,6 @@ class SentenceEmbedder:
         return self.encoder.encode(texts)
 
 
-
 class DataLoader:
     def __init__(self, ftr_type='text', downsample=False):
         self.ftr_type = ftr_type
@@ -88,3 +87,49 @@ class Classifier:
         else:
             return model.predict(X)
 
+
+class TpotThemeClassifier:
+    def __init__(self, theme='streak') -> None:
+        self.theme = theme
+    
+    def train_streak(self, X, y):
+        print('Training streak classifier...')
+        from sklearn.ensemble import RandomForestClassifier
+
+        exported_pipeline = RandomForestClassifier(bootstrap=True, criterion="gini", max_features=0.45, min_samples_leaf=13, min_samples_split=17, n_estimators=100)
+        # Fix random state in exported estimator
+        if hasattr(exported_pipeline, 'random_state'):
+            setattr(exported_pipeline, 'random_state', 42)
+        exported_pipeline.fit(X, y)
+        return exported_pipeline
+
+    def train_standing(self, X, y):
+        print('Training standing classifier...')
+        from sklearn.cluster import FeatureAgglomeration
+        from sklearn.ensemble import ExtraTreesClassifier
+        from sklearn.naive_bayes import GaussianNB
+        from sklearn.pipeline import make_pipeline
+        from sklearn.preprocessing import PolynomialFeatures
+        from tpot.builtins import StackingEstimator
+        from tpot.export_utils import set_param_recursive
+
+        exported_pipeline = make_pipeline(
+            PolynomialFeatures(degree=2, include_bias=False, interaction_only=False),
+            StackingEstimator(estimator=GaussianNB()),
+            FeatureAgglomeration(affinity="manhattan", linkage="complete"),
+            ExtraTreesClassifier(bootstrap=True, criterion="gini", max_features=0.15000000000000002, min_samples_leaf=18, min_samples_split=6, n_estimators=100)
+        )
+        # Fix random state for all the steps in exported pipeline
+        set_param_recursive(exported_pipeline.steps, 'random_state', 42)
+
+        exported_pipeline.fit(X, y)
+        return exported_pipeline
+
+    def train(self, X, y):
+        if self.theme == 'streak':
+            return self.train_streak(X, y)
+        elif self.theme == 'standing':
+            return self.train_standing(X, y)
+
+    def predict(self, model, X):
+        return model.predict(X)
