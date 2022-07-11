@@ -34,16 +34,16 @@ class MyTaskDataProcessor(DataProcessor):
     TASK_NAME = "theme-classifier"
 
     # Set this to the name of the file containing the train examples
-    TRAIN_FILE_NAME = f"train_text.csv"
+    TRAIN_FILE_NAME = f"train_text_down.csv"
 
     # Set this to the name of the file containing the dev examples
     DEV_FILE_NAME = f"validation_text.csv"
 
     # Set this to the name of the file containing the test examples
-    TEST_FILE_NAME = f"test_text.csv"
+    TEST_FILE_NAME = f"validation_text.csv"
 
     # Set this to the name of the file containing the unlabeled examples
-    UNLABELED_FILE_NAME = f"train_text.csv"
+    UNLABELED_FILE_NAME = f"test_text.csv"
 
     # Set this to a list of all labels in the train + test data
     LABELS = ["0", "1"]
