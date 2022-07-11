@@ -17,6 +17,8 @@ hist_info/
 classifs/
 sys_gens/
 examples/
+gpt2-finetuned/
+output/
 
 average_stats/
 doubles/
