@@ -1,7 +1,7 @@
 # # use PET with fine-tuned RoBERTa model
 # # nvidia-docker run --rm -it --name themes -v /raid/1716293:/check -w /check pytorch/pytorch:1.9.0-cuda10.2-cudnn7-devel bash
 
-# gpu=$1
+gpu=$1
 
 # for theme in 'standing' 'streak'
 # do
@@ -37,34 +37,39 @@
 
 PATTERN_IDS=0
 DATA_DIR='data/streak/'
+
+# MODEL_TYPE='gpt2'
+# MODEL_NAME_OR_PATH='gpt2-finetuned'
+
 MODEL_TYPE='roberta'
 MODEL_NAME_OR_PATH='roberta-base'
+
 OUTPUT_DIR='output/streak/'
 TASK='theme-classifier'
 
 echo "Running pattern id: $PATTERN_IDS with $MODEL_TYPE model and $TASK task"
 
-python3 pet_cli.py \
---method pet \
+CUDA_VISIBLE_DEVICES=$gpu python3 pet_cli.py \
+--method sequence_classifier \
 --pattern_ids $PATTERN_IDS \
 --data_dir $DATA_DIR \
 --model_type $MODEL_TYPE \
 --model_name_or_path $MODEL_NAME_OR_PATH \
 --task_name $TASK \
 --output_dir $OUTPUT_DIR \
---do_train \
 --do_eval \
---pet_per_gpu_eval_batch_size 8 \
---pet_per_gpu_train_batch_size 2 \
+--pet_per_gpu_eval_batch_size 16 \
+--pet_per_gpu_train_batch_size 8 \
 --pet_gradient_accumulation_steps 8 \
 --pet_max_steps 250 \
---pet_max_seq_length 256 \
---pet_repetitions 3 \
---sc_per_gpu_train_batch_size 2 \
---sc_per_gpu_unlabeled_batch_size 2 \
+--pet_max_seq_length 128 \
+--pet_repetitions 1 \
+--sc_per_gpu_train_batch_size 4 \
+--sc_per_gpu_unlabeled_batch_size 8 \
 --sc_gradient_accumulation_steps 8 \
---sc_max_steps 5000 \
---sc_max_seq_length 256 \
+--sc_max_steps 1000 \
+--sc_max_seq_length 128 \
 --sc_repetitions 1
 
 
+# --do_train \
