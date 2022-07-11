@@ -10,7 +10,7 @@ from sklearn.metrics import accuracy_score, f1_score, fbeta_score, precision_sco
 
 
 def get_clf_report(true, pred):
-    mf1 = float(f"{f1_score(true, pred, average='macro')*100:.2f}")    
+    mf1 = float(f"{f1_score(true, pred, average='macro'):.2f}")
     acc = float(f"{accuracy_score(true, pred):.2f}")
     f1 = float(f"{f1_score(true, pred):.2f}")
     prec = float(f"{precision_score(true, pred):.2f}")
