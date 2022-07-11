@@ -56,7 +56,7 @@ def main(FTR='text', CLF='rf', THEME='streak', DOWNSAMPLE=False, SAVE_TO_DISK=Fa
 
     if AUGMENT:
         print(f'Saving {len(aug_texts)} augmented data!!!')
-        pd.DataFrame({"text": aug_texts}).to_csv(f'data/{THEME}/augmented_text.csv', index=False, header=False)
+        pd.DataFrame({"text": aug_texts, 'labels': [0]*len(aug_texts)}).to_csv(f'data/{THEME}/augmented_text.csv', index=False, header=False)
         return
 
     if CLF == 'bert' or CLF == 'pet':
@@ -82,7 +82,7 @@ def main(FTR='text', CLF='rf', THEME='streak', DOWNSAMPLE=False, SAVE_TO_DISK=Fa
 
         elif CLF == 'pet':
             print('Loading PET model...')
-            model_path = f"pet-models/{THEME}/final/p0-i0"
+            model_path = f"pet_models/{THEME}/final/p0-i0"
 
         print('Loading model...')
         trained_model = AutoModelForSequenceClassification.from_pretrained(model_path)
