@@ -56,7 +56,11 @@ def main(FTR='text', CLF='rf', THEME='streak', DOWNSAMPLE=False, SAVE_TO_DISK=Fa
 
     if AUGMENT:
         print(f'Saving {len(aug_texts)} augmented data!!!')
-        pd.DataFrame({"text": aug_texts, 'labels': [0]*len(aug_texts)}).to_csv(f'data/{THEME}/augmented_text.csv', index=False, header=False)
+        if FTR == 'text':
+            pd.DataFrame({"text": aug_texts, 'labels': [0]*len(aug_texts)}).to_csv(f'data/{THEME}/augmented_text.csv', index=False, header=False)
+        elif FTR == 'num':
+            # pd.DataFrame({"num": aug_texts, 'labels': [0]*len(aug_texts)}).to_csv(f'data/{THEME}/augmented_num.csv', index=False, header=False)
+            pass
         return
 
     if CLF == 'bert' or CLF == 'pet':
@@ -94,8 +98,7 @@ def main(FTR='text', CLF='rf', THEME='streak', DOWNSAMPLE=False, SAVE_TO_DISK=Fa
         if CLF == 'tpot':
             print('This is using tpot model...')
             assert FTR == 'num', 'TPOT only works with numerical features'
-            assert DOWNSAMPLE == True, 'TPOT only works with downsampling (as of now)'
-            clf_obj = TpotThemeClassifier(theme=THEME)
+            clf_obj = TpotThemeClassifier(theme=THEME, downsample=DOWNSAMPLE)
             dl_obj = DataLoader(ftr_type=FTR, downsample=DOWNSAMPLE)
         else:
             clf_obj = Classifier(CLF)

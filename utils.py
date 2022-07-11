@@ -89,10 +89,11 @@ class Classifier:
 
 
 class TpotThemeClassifier:
-    def __init__(self, theme='streak') -> None:
+    def __init__(self, theme='streak', downsample=True) -> None:
         self.theme = theme
+        self.down = downsample
     
-    def train_streak(self, X, y):
+    def train_streak_down(self, X, y):
         print('Training streak classifier...')
         from sklearn.ensemble import RandomForestClassifier
 
@@ -103,7 +104,7 @@ class TpotThemeClassifier:
         exported_pipeline.fit(X, y)
         return exported_pipeline
 
-    def train_standing(self, X, y):
+    def train_standing_down(self, X, y):
         print('Training standing classifier...')
         from sklearn.cluster import FeatureAgglomeration
         from sklearn.ensemble import ExtraTreesClassifier
@@ -125,10 +126,41 @@ class TpotThemeClassifier:
         exported_pipeline.fit(X, y)
         return exported_pipeline
 
+    def train_streak(self, X, y):
+        from sklearn.ensemble import RandomForestClassifier
+
+        exported_pipeline = RandomForestClassifier(bootstrap=False, criterion="gini", max_features=0.4, min_samples_leaf=18, min_samples_split=20, n_estimators=100)
+        # Fix random state in exported estimator
+        if hasattr(exported_pipeline, 'random_state'):
+            setattr(exported_pipeline, 'random_state', 42)
+
+        exported_pipeline.fit(X, y)
+        return exported_pipeline
+
+    def train_standing(self, X, y):
+        from sklearn.decomposition import FastICA
+        from sklearn.neighbors import KNeighborsClassifier
+        from sklearn.pipeline import make_pipeline
+        from tpot.export_utils import set_param_recursive
+
+        exported_pipeline = make_pipeline(
+            FastICA(tol=0.35000000000000003),
+            KNeighborsClassifier(n_neighbors=89, p=1, weights="uniform")
+        )
+        # Fix random state for all the steps in exported pipeline
+        set_param_recursive(exported_pipeline.steps, 'random_state', 42)
+
+        exported_pipeline.fit(X, y)
+        return exported_pipeline
+
     def train(self, X, y):
-        if self.theme == 'streak':
+        if self.theme == 'streak' and self.down == True:
+            return self.train_streak_down(X, y)
+        elif self.theme == 'streak' and self.down == False:
             return self.train_streak(X, y)
-        elif self.theme == 'standing':
+        elif self.theme == 'standing' and self.down == True:
+            return self.train_standing_down(X, y)
+        elif self.theme == 'standing' and self.down == False:
             return self.train_standing(X, y)
 
     def predict(self, model, X):

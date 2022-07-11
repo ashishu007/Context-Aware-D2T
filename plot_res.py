@@ -63,7 +63,7 @@ for theme in ['streak', 'standing']:
                     clf_results = empty_js
                 elif (clf == 'pet' and ftr == 'num') or (clf == 'pet' and do_down == 'yes'):
                     clf_results = empty_js
-                elif (clf == 'tpot' and ftr == 'text') or (clf == 'tpot' and do_down == 'no'):
+                elif (clf == 'tpot' and ftr == 'text'):
                     clf_results = empty_js
                 else:
                     js = json.load(open(f"results/{theme}/{clf}-{ftr}-down_{do_down}.json"))

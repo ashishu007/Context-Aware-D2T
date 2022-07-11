@@ -31,18 +31,24 @@ class TeamStreak:
             ftrs.append(0)
         return ftrs
 
-    def aug_text_ftr(self, streak, broken_streak, team_name):
+    def aug_train_ftrs(self, streak, broken_streak, team_name, ftr_type='text'):
         streak1 = {'type': streak['type'], 'count': streak['count'] + 1}
         broken_streak1 = {'type': broken_streak['type'], 'count': broken_streak['count'] + 1} if broken_streak else {}
-        aug_text1 = self.team_streak_text_ftr(streak1, broken_streak1, team_name)
+        if ftr_type == 'text':
+            aug_ftrs1 = self.team_streak_text_ftr(streak1, broken_streak1, team_name)
+        elif ftr_type == 'num':
+            aug_ftrs1 = self.team_streak_num_ftr(streak1, broken_streak1)
         streak2 = {'type': streak['type'], 'count': streak['count'] - 1}
         broken_streak2 = {'type': broken_streak['type'], 'count': broken_streak['count'] - 1} if broken_streak else {}
-        aug_text2 = self.team_streak_text_ftr(streak2, broken_streak2, team_name)
-        return [aug_text1, aug_text2]
+        if ftr_type == 'text':
+            aug_ftrs2 = self.team_streak_text_ftr(streak2, broken_streak2, team_name)
+        elif ftr_type == 'num':
+            aug_ftrs2 = self.team_streak_num_ftr(streak2, broken_streak2)
+        return [aug_ftrs1, aug_ftrs2]
 
     def get_theme_train_val_test_data(self):
         all_data = {'train': [], 'validation': [], 'test': []}
-        augmented_train_texts = []
+        augmented_train_ftrs = []
 
         for part in ['train',  'validation', 'test']:
             print(f'processing {part}...')
@@ -84,8 +90,8 @@ class TeamStreak:
                 elif self.ftr_type == 'num':
                     hftrs = self.team_streak_num_ftr(hstreak, hbroken_streak)
 
-                if self.ftr_type == 'text' and part == 'train':
-                    augmented_train_texts.extend(self.aug_text_ftr(hstreak, hbroken_streak, hteam))
+                if part == 'train':
+                    augmented_train_ftrs.extend(self.aug_train_ftrs(hstreak, hbroken_streak, hteam, ftr_type=self.ftr_type))
 
                 vstreak = streak_info[gem_id]['vis']
                 vbroken_streak = {}
@@ -98,7 +104,7 @@ class TeamStreak:
                     vftrs = self.team_streak_num_ftr(vstreak, vbroken_streak)
 
                 if self.ftr_type == 'text' and part == 'train':
-                    augmented_train_texts.extend(self.aug_text_ftr(vstreak, vbroken_streak, vteam))
+                    augmented_train_ftrs.extend(self.aug_train_ftrs(vstreak, vbroken_streak, vteam, ftr_type=self.ftr_type))
 
                 if htflag == True:
                     part_data['ftrs'].append(hftrs)
@@ -116,7 +122,7 @@ class TeamStreak:
 
             all_data[part] = part_data
 
-        return all_data, augmented_train_texts
+        return all_data, augmented_train_ftrs
 
 
 class TeamStanding:
@@ -180,7 +186,7 @@ class TeamStanding:
 
         return list(ftr_vector.values())
 
-    def aug_text_ftr(self, info):
+    def aug_train_ftrs(self, info, ftr_type='text'):
         info1 = info.copy()
         info2 = info.copy()
         info1['current']['standing'] = info['current']['standing'] + 1
@@ -193,11 +199,14 @@ class TeamStanding:
             info2['next_1']['standing'] = info2['next_1']['standing'] - 1
         if 'prev_1' in info2:
             info2['prev_1']['standing'] = info2['prev_1']['standing'] - 1
-        return [self.team_standing_text_ftr(info1), self.team_standing_text_ftr(info2)]
+        if ftr_type == 'text':
+            return [self.team_standing_text_ftr(info1), self.team_standing_text_ftr(info2)]
+        elif ftr_type == 'num':
+            return [self.team_standing_num_ftr(info1), self.team_standing_num_ftr(info2)]
 
     def get_theme_train_val_test_data(self):
         all_data = {'train': [], 'validation': [], 'test': []}
-        augmented_train_texts = []
+        augmented_train_ftrs = []
         for part in ['train', 'validation', 'test']:
             if part == 'train':
                 mentions = self.train_mentions
@@ -217,16 +226,17 @@ class TeamStanding:
                 if self.ftr_type == 'text':
                     ftrs.append(self.team_standing_text_ftr(inf['home']))
                     ftrs.append(self.team_standing_text_ftr(inf['vis']))
-                    if part == 'train':
-                        augmented_train_texts.extend(self.aug_text_ftr(inf['home']))
-                        augmented_train_texts.extend(self.aug_text_ftr(inf['vis']))
                 elif self.ftr_type == 'num':
                     ftrs.append(self.team_standing_num_ftr(inf['home']))
                     ftrs.append(self.team_standing_num_ftr(inf['vis']))
+
+                if part == 'train':
+                    augmented_train_ftrs.extend(self.aug_train_ftrs(inf['home'], ftr_type=self.ftr_type))
+                    augmented_train_ftrs.extend(self.aug_train_ftrs(inf['vis'], ftr_type=self.ftr_type))
 
                 lab = 1 if gem_id in mentions else 0
                 labs.append(lab)
                 labs.append(lab)
 
             all_data[part] = {'ftrs': ftrs, 'labs': labs}
-        return all_data, augmented_train_texts
+        return all_data, augmented_train_ftrs
