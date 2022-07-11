@@ -40,10 +40,10 @@ class MyTaskDataProcessor(DataProcessor):
     DEV_FILE_NAME = f"validation_text.csv"
 
     # Set this to the name of the file containing the test examples
-    TEST_FILE_NAME = f"validation_text.csv"
+    TEST_FILE_NAME = f"test_text.csv"
 
     # Set this to the name of the file containing the unlabeled examples
-    UNLABELED_FILE_NAME = f"test_text.csv"
+    UNLABELED_FILE_NAME = f"augmented_text.csv"
 
     # Set this to a list of all labels in the train + test data
     LABELS = ["0", "1"]

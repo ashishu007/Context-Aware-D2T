@@ -55,7 +55,7 @@ class MyTaskPVP(PVP):
         if self.pattern_id == 0:
             # this corresponds to the pattern [MASK]: a b
             # return [self.mask, ':', text_a, text_b], []
-            return [text_a, '. Is this interesting and should this be included in the summary?: ', self.mask, text_b], []
+            return [text_a, '. Is this interesting and should it be included in the summary?: ', self.mask, text_b], []
         elif self.pattern_id == 1:
             # this corresponds to the pattern [MASK] News: a || (b)
             return [self.mask, 'News:', text_a], ['(', text_b, ')']
