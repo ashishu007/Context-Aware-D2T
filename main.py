@@ -43,8 +43,8 @@ def main(FTR='text', CLF='rf', THEME='streak', DOWNSAMPLE=False, SAVE_TO_DISK=Fa
 
     if CLF == 'if':
         assert DOWNSAMPLE == False, 'Downsampling not supported for Isolation Forest as it is an anomaly detection algorithm'
-    elif CLF == 'bert':
-        assert FTR == 'text', 'Bert only works with text features'
+    elif CLF == 'bert' or CLF == 'pet':
+        assert FTR == 'text', f'{CLF.upper()} only works with text features'
 
     if THEME == 'streak':
         theme_obj = TeamStreak(FTR)
