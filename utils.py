@@ -1,7 +1,12 @@
 import time
 import random
 import numpy as np
+import pandas as pd
 from sklearn.svm import LinearSVC
+from imblearn.over_sampling import SMOTE
+from sklearn.neural_network import MLPClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.linear_model import LogisticRegression
 from sentence_transformers import SentenceTransformer
 from sklearn.ensemble import RandomForestClassifier, IsolationForest
 random.seed(42)
@@ -16,9 +21,41 @@ class SentenceEmbedder:
 
 
 class DataLoader:
-    def __init__(self, ftr_type='text', downsample=False):
+    def __init__(self, downsample=False, theme='streak', ftr_type='text') -> None:
+        self.theme = theme
         self.ftr_type = ftr_type
         self.downsample = downsample
+
+        if self.theme == 'streak':
+            self.num_cols = list(range(1, 6+19))
+        elif self.theme == 'standing':
+            self.num_cols = list(range(1, 17))
+
+        if self.ftr_type == 'text':
+            self.col_names = ['text', 'label']
+        elif self.ftr_type == 'num':
+            self.col_names = self.num_cols + ['label']
+        elif self.ftr_type == 'emb':
+            self.num_cols = list(range(1, 769))
+            self.col_names = self.num_cols + ['label']
+
+        self.train = pd.read_csv(f'data/{self.theme}/train_{self.ftr_type}{"_down" if self.downsample else ""}.csv', names=self.col_names)
+        self.val = pd.read_csv(f'data/{self.theme}/validation_{self.ftr_type}{"_down" if self.downsample else ""}.csv', names=self.col_names)
+        self.test = pd.read_csv(f'data/{self.theme}/test_{self.ftr_type}{"_down" if self.downsample else ""}.csv', names=self.col_names)
+    
+    def get_data(self):
+        train_y = self.train['label'].to_numpy()
+        val_y = self.val['label'].to_numpy()
+        test_y = self.test['label'].to_numpy()
+        if self.ftr_type == 'text':
+            train_x = self.train['text'].to_list()
+            val_x = self.val['text'].to_list()
+            test_x = self.test['text'].to_list()
+        elif self.ftr_type == 'num' or self.ftr_type == 'emb':
+            train_x = self.train[self.num_cols].to_numpy()
+            val_x = self.val[self.num_cols].to_numpy()
+            test_x = self.test[self.num_cols].to_numpy()
+        return train_x, train_y, val_x, val_y, test_x, test_y
 
     def downsample_data(self, X, y):
         pos_x = [X[idx] for idx, item in enumerate(y) if y[idx] == 1]
@@ -30,8 +67,13 @@ class DataLoader:
         train_x1 = np.concatenate([pos_x, neg_x1])
         train_y1 = np.concatenate([pos_y, neg_y1])
         return train_x1, train_y1
+    
+    def upsample_data(self, X, y):
+        sm = SMOTE(random_state=42)
+        X_res, y_res = sm.fit_resample(X, y)
+        return X_res, y_res
 
-    def prep_data(self, all_data):
+    def prep_data(self, all_data, embed_texts=False):
 
         train_x = np.array(all_data['train']['ftrs'])
         val_x = np.array(all_data['validation']['ftrs'])
@@ -44,7 +86,8 @@ class DataLoader:
             print('Downsampling...')
             train_x, train_y = self.downsample_data(train_x, train_y)
 
-        if self.ftr_type == 'text':
+        # if self.ftr_type == 'text':
+        if embed_texts:
             embed_obj = SentenceEmbedder()
             print('Embedding train texts...')
             t1 = time.time()
@@ -77,6 +120,12 @@ class Classifier:
             self.clf = LinearSVC(random_state=self.random_state)
         elif algo_name == 'if':
             self.clf = IsolationForest(random_state=self.random_state)
+        elif algo_name == 'knn':
+            self.clf = KNeighborsClassifier(n_neighbors=5)
+        elif algo_name == 'ann':
+            self.clf = MLPClassifier(random_state=self.random_state)
+        elif algo_name == 'lr':
+            self.clf = LogisticRegression(random_state=self.random_state)
 
     def train(self, X, y):
         return self.clf.fit(X, y)
@@ -165,3 +214,20 @@ class TpotThemeClassifier:
 
     def predict(self, model, X):
         return model.predict(X)
+
+
+class RuleClassifier:
+    def __init__(self, theme='streak'):
+        self.theme = theme
+
+    def streak_rule(self, X):
+        return np.array([1 if x[1] > 3 or x[3] > 3 else 0 for x in X])
+
+    def standing_rule(self, X):
+        pass
+
+    def predict(self, model, X):
+        if self.theme == 'streak':
+            return self.streak_rule(X)
+        elif self.theme == 'standing':
+            return self.standing_rule(X)

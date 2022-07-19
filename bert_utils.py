@@ -10,7 +10,9 @@ random.seed(42)
 
 
 class BertDataLoader:
-    def __init__(self, downsample=False) -> None:
+    def __init__(self, downsample=False, theme='streak', ftr_type='text') -> None:
+        self.theme = theme
+        self.ftr_type = ftr_type
         self.downsample = downsample
 
     def downsample_data(self, data_list):
