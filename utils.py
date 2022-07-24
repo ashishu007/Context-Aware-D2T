@@ -27,9 +27,13 @@ class DataLoader:
         self.downsample = downsample
 
         if self.theme == 'streak':
-            self.num_cols = list(range(1, 6+19))
+            self.num_cols = list(range(1, 6))
         elif self.theme == 'standing':
             self.num_cols = list(range(1, 17))
+        elif self.theme == 'average':
+            self.num_cols = list(range(1, 6))
+        elif self.theme == 'double':
+            self.num_cols = list(range(1, 8))
 
         if self.ftr_type == 'text':
             self.col_names = ['text', 'label']
@@ -57,6 +61,18 @@ class DataLoader:
             test_x = self.test[self.num_cols].to_numpy()
         return train_x, train_y, val_x, val_y, test_x, test_y
 
+
+class PrepData:
+    def __init__(self, downsample=False, theme='streak', ftr_type='text') -> None:
+        self.theme = theme
+        self.ftr_type = ftr_type
+        self.downsample = downsample
+
+    def upsample_data(self, X, y):
+        sm = SMOTE(random_state=42)
+        X_res, y_res = sm.fit_resample(X, y)
+        return X_res, y_res
+
     def downsample_data(self, X, y):
         pos_x = [X[idx] for idx, item in enumerate(y) if y[idx] == 1]
         pos_y = [y[idx] for idx, item in enumerate(y) if y[idx] == 1]
@@ -67,11 +83,6 @@ class DataLoader:
         train_x1 = np.concatenate([pos_x, neg_x1])
         train_y1 = np.concatenate([pos_y, neg_y1])
         return train_x1, train_y1
-    
-    def upsample_data(self, X, y):
-        sm = SMOTE(random_state=42)
-        X_res, y_res = sm.fit_resample(X, y)
-        return X_res, y_res
 
     def prep_data(self, all_data, embed_texts=False):
 
@@ -86,7 +97,6 @@ class DataLoader:
             print('Downsampling...')
             train_x, train_y = self.downsample_data(train_x, train_y)
 
-        # if self.ftr_type == 'text':
         if embed_texts:
             embed_obj = SentenceEmbedder()
             print('Embedding train texts...')
@@ -145,7 +155,6 @@ class TpotThemeClassifier:
     def train_streak_down(self, X, y):
         print('Training streak classifier...')
         from sklearn.ensemble import RandomForestClassifier
-
         exported_pipeline = RandomForestClassifier(bootstrap=True, criterion="gini", max_features=0.45, min_samples_leaf=13, min_samples_split=17, n_estimators=100)
         # Fix random state in exported estimator
         if hasattr(exported_pipeline, 'random_state'):
@@ -162,7 +171,6 @@ class TpotThemeClassifier:
         from sklearn.preprocessing import PolynomialFeatures
         from tpot.builtins import StackingEstimator
         from tpot.export_utils import set_param_recursive
-
         exported_pipeline = make_pipeline(
             PolynomialFeatures(degree=2, include_bias=False, interaction_only=False),
             StackingEstimator(estimator=GaussianNB()),
@@ -171,18 +179,15 @@ class TpotThemeClassifier:
         )
         # Fix random state for all the steps in exported pipeline
         set_param_recursive(exported_pipeline.steps, 'random_state', 42)
-
         exported_pipeline.fit(X, y)
         return exported_pipeline
 
     def train_streak(self, X, y):
         from sklearn.ensemble import RandomForestClassifier
-
         exported_pipeline = RandomForestClassifier(bootstrap=False, criterion="gini", max_features=0.4, min_samples_leaf=18, min_samples_split=20, n_estimators=100)
         # Fix random state in exported estimator
         if hasattr(exported_pipeline, 'random_state'):
             setattr(exported_pipeline, 'random_state', 42)
-
         exported_pipeline.fit(X, y)
         return exported_pipeline
 
@@ -191,14 +196,29 @@ class TpotThemeClassifier:
         from sklearn.neighbors import KNeighborsClassifier
         from sklearn.pipeline import make_pipeline
         from tpot.export_utils import set_param_recursive
-
         exported_pipeline = make_pipeline(
             FastICA(tol=0.35000000000000003),
             KNeighborsClassifier(n_neighbors=89, p=1, weights="uniform")
         )
         # Fix random state for all the steps in exported pipeline
         set_param_recursive(exported_pipeline.steps, 'random_state', 42)
+        exported_pipeline.fit(X, y)
+        return exported_pipeline
+    
+    def train_average_down(self, X, y):
+        from sklearn.tree import DecisionTreeClassifier
+        exported_pipeline = DecisionTreeClassifier(criterion="gini", max_depth=3, min_samples_leaf=11, min_samples_split=6)
+        # Fix random state in exported estimator
+        if hasattr(exported_pipeline, 'random_state'):
+            setattr(exported_pipeline, 'random_state', 42)
+        exported_pipeline.fit(X, y)
+        return exported_pipeline
 
+    def train_double_down(self, X, y):
+        from sklearn.ensemble import ExtraTreesClassifier
+        exported_pipeline = ExtraTreesClassifier(bootstrap=False, criterion="entropy", max_features=0.1, min_samples_leaf=4, min_samples_split=14, n_estimators=100)
+        if hasattr(exported_pipeline, 'random_state'):
+            setattr(exported_pipeline, 'random_state', 42)
         exported_pipeline.fit(X, y)
         return exported_pipeline
 
@@ -211,6 +231,10 @@ class TpotThemeClassifier:
             return self.train_standing_down(X, y)
         elif self.theme == 'standing' and self.down == False:
             return self.train_standing(X, y)
+        elif self.theme == 'average' and self.down == True:
+            return self.train_average_down(X, y)
+        elif self.theme == 'double' and self.down == True:
+            return self.train_double_down(X, y)
 
     def predict(self, model, X):
         return model.predict(X)

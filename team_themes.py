@@ -39,7 +39,7 @@ class TeamStreak:
             ftrs.append(broken_streak['count'])
         else:
             ftrs.append(0)
-        ftrs.extend(list(line_score.values()))
+        # ftrs.extend(list(line_score.values()))
         return ftrs
 
     def aug_train_ftrs(self, streak, broken_streak, team_name, line_score, ftr_type='text'):
