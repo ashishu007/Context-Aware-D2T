@@ -4,7 +4,7 @@ from datasets import load_dataset
 from extract_ents import ExtractEntities
 
 class TeamStreak:
-    def __init__(self, ftr_type='text') -> None:
+    def __init__(self, ftr_type='num') -> None:
         self.ftr_type = ftr_type
         self.ee_obj = ExtractEntities()
         self.dataset = load_dataset('GEM/sportsett_basketball')
@@ -23,22 +23,28 @@ class TeamStreak:
         """
         ftrs: [10, 1, 1, 2, 5]
         ftrs[0]: team id
-        ftrs[1]: streak type
-        ftrs[2]: streak count
+        ftrs[1]: streak count
+        ftrs[2]: streak type
         ftrs[3]: broken streak type
         ftrs[4]: broken streak count
+        cat_ftrs = [0, 2, 3]
         """
         ids = {'W': 1, 'L': 2}
         team_id = self.team_names[team_name]
-        ftrs = [team_id, streak['count'], ids[streak['type']]]
+        # ftrs = [team_id, streak['count'], ids[streak['type']]]
+        ftrs = {"team_name": team_id, "streak_count": streak['count'], "streak_type": ids[streak['type']]}
         if 'type' in broken_streak:
-            ftrs.append(ids[broken_streak['type']])
+            # ftrs.append(ids[broken_streak['type']])
+            ftrs['broken_streak_type'] = ids[broken_streak['type']]
         else:
-            ftrs.append(0)
+            # ftrs.append(0)
+            ftrs['broken_streak_type'] = 0
         if 'count' in broken_streak:
-            ftrs.append(broken_streak['count'])
+            # ftrs.append(broken_streak['count'])
+            ftrs['broken_streak_count'] = broken_streak['count']
         else:
-            ftrs.append(0)
+            # ftrs.append(0)
+            ftrs['broken_streak_count'] = 0
         # ftrs.extend(list(line_score.values()))
         return ftrs
 
@@ -58,7 +64,8 @@ class TeamStreak:
         return [aug_ftrs1, aug_ftrs2]
 
     def get_theme_train_val_test_data(self):
-        all_data = {'train': [], 'validation': [], 'test': []}
+        # all_data = {'train': [], 'validation': [], 'test': []}
+        all_data = {}
         augmented_train_ftrs = []
 
         for part in ['train',  'validation', 'test']:
@@ -70,6 +77,7 @@ class TeamStreak:
             broken_streaks_info = json.load(open(f'streaks/broken_streak-{part}.json'))
 
             for item in tqdm(self.dataset[f'{part}']):
+                gem_id_data_points = []
                 gem_id = item['gem_id']
                 hls = item['teams']['home']['line_score']['game']
                 vls = item['teams']['vis']['line_score']['game']
@@ -120,26 +128,32 @@ class TeamStreak:
                 #     augmented_train_ftrs.extend(self.aug_train_ftrs(vstreak, vbroken_streak, vteam, vls, ftr_type=self.ftr_type))
 
                 if htflag == True:
-                    part_data['ftrs'].append(hftrs)
-                    part_data['labs'].append(1)
+                    # part_data['ftrs'].append(hftrs)
+                    # part_data['labs'].append(1)
+                    gem_id_data_points.append({'ftrs': hftrs, 'lab': 1})
                 elif htflag == False:
-                    part_data['ftrs'].append(vftrs)
-                    part_data['labs'].append(0)
+                    # part_data['ftrs'].append(hftrs)
+                    # part_data['labs'].append(0)
+                    gem_id_data_points.append({'ftrs': hftrs, 'lab': 0})
 
                 if vtflag == True:
-                    part_data['ftrs'].append(vftrs)
-                    part_data['labs'].append(1)
+                    # part_data['ftrs'].append(vftrs)
+                    # part_data['labs'].append(1)
+                    gem_id_data_points.append({'ftrs': vftrs, 'lab': 1})
                 elif vtflag == False:
-                    part_data['ftrs'].append(hftrs)
-                    part_data['labs'].append(0)
+                    # part_data['ftrs'].append(vftrs)
+                    # part_data['labs'].append(0)
+                    gem_id_data_points.append({'ftrs': vftrs, 'lab': 0})
 
-            all_data[part] = part_data
+                all_data[gem_id] = gem_id_data_points
+
+            # all_data[part] = part_data
 
         return all_data, augmented_train_ftrs
 
 
 class TeamStanding:
-    def __init__(self, ftr_type='text') -> None:
+    def __init__(self, ftr_type='num') -> None:
         self.ftr_type = ftr_type
         self.ee_obj = ExtractEntities()
         self.dataset = load_dataset('GEM/sportsett_basketball')
@@ -169,6 +183,12 @@ class TeamStanding:
         return f'{current_text} {prev_1_text} {next_1_text} {season_date_text}'
 
     def team_standing_num_ftr(self, info, line_score):
+        """
+        ftrs[0], ftrs[1], ftrs[2], ftrs[3], ftrs[4], ftrs[5]: team_name, current_standing, current_wins, current_losses, current_win_perct, current_season_date
+        ftrs[6], ftrs[7], ftrs[8], ftrs[9], ftrs[10]: prev_1_standing, prev_1_wins, prev_1_losses, prev_1_win_perct, prev_1_season_date
+        ftrs[11], ftrs[12], ftrs[13], ftrs[14], ftrs[15]: next_1_standing, next_1_wins, next_1_losses, next_1_win_perct, next_1_season_date
+        cat_ftrs = [0]
+        """
         ftr_vector = {'team_name': self.team_names[info["current"]["team"]]}
         current_team_ftrs = ['standing', 'wins', 'losses', 'win_perct', 'season_date']
         other_team_ftrs = ['standing', 'wins', 'losses', 'win_perct', 'win_diff']
@@ -191,7 +211,8 @@ class TeamStanding:
             for key in other_team_ftrs:
                 ftr_vector[f"next_1-{key}"] = 0
 
-        return list(ftr_vector.values())
+        return ftr_vector
+        # return list(ftr_vector.values())
         # return list(ftr_vector.values()) + list(line_score.values())
 
     def aug_train_ftrs(self, info, ftr_type='text'):
@@ -213,21 +234,23 @@ class TeamStanding:
             return [self.team_standing_num_ftr(info1), self.team_standing_num_ftr(info2)]
 
     def get_theme_train_val_test_data(self):
-        all_data = {'train': [], 'validation': [], 'test': []}
+        # all_data = {'train': [], 'validation': [], 'test': []}
+        # all_data = {'train': {}, 'validation': {}, 'test': {}}
+        all_data = {}
         augmented_train_ftrs = []
 
         for part in ['train', 'validation', 'test']:
             print(f'Processing {part}...')
 
-            if part != 'train':
-                continue
+            # if part != 'train':
+            #     continue
 
             js = json.load(open(f'data/{part}_data_ct.json'))
             info = json.load(open(f'standings/{part}.json'))
-            # ftrs, labs = [], []
-            tr_ftrs, tr_labs = [], []
-            vl_ftrs, vl_labs = [], []
-            te_ftrs, te_labs = [], []
+            ftrs, labs = [], []
+            # tr_ftrs, tr_labs = [], []
+            # vl_ftrs, vl_labs = [], []
+            # te_ftrs, te_labs = [], []
 
             for item in tqdm(self.dataset[f'{part}']):
                 gem_id = item['gem_id']
@@ -269,59 +292,68 @@ class TeamStanding:
                 #     hftr_vector1, vftr_vector1 = self.aug_train_ftrs(hinf, ftr_type=self.ftr_type), self.aug_train_ftrs(vinf, ftr_type=self.ftr_type)
                 #     augmented_train_ftrs.append(hftr_vector1)
                 #     augmented_train_ftrs.append(vftr_vector1)
+                
+                gem_id_data_points = []
 
                 if hflag:
-                    if season == '2014':
-                        tr_ftrs.append(hftr_vector)
-                        tr_labs.append(1)
-                    elif season == '2015':
-                        vl_ftrs.append(hftr_vector)
-                        vl_labs.append(1)
-                    elif season == '2016':
-                        te_ftrs.append(hftr_vector)
-                        te_labs.append(1)
+                    # # if season == '2014':
+                    # #     tr_ftrs.append(hftr_vector)
+                    # #     tr_labs.append(1)
+                    # # elif season == '2015':
+                    # #     vl_ftrs.append(hftr_vector)
+                    # #     vl_labs.append(1)
+                    # # elif season == '2016':
+                    # #     te_ftrs.append(hftr_vector)
+                    # #     te_labs.append(1)
                     # ftrs.append(hftr_vector)
                     # labs.append(1)
+                    gem_id_data_points.append({'ftrs': hftr_vector, 'lab': 1})
                 else:
-                    if season == '2014':
-                        tr_ftrs.append(hftr_vector)
-                        tr_labs.append(0)
-                    elif season == '2015':
-                        vl_ftrs.append(hftr_vector)
-                        vl_labs.append(0)
-                    elif season == '2016':
-                        te_ftrs.append(hftr_vector)
-                        te_labs.append(0)
+                    # # if season == '2014':
+                    # #     tr_ftrs.append(hftr_vector)
+                    # #     tr_labs.append(0)
+                    # # elif season == '2015':
+                    # #     vl_ftrs.append(hftr_vector)
+                    # #     vl_labs.append(0)
+                    # # elif season == '2016':
+                    # #     te_ftrs.append(hftr_vector)
+                    # #     te_labs.append(0)
                     # ftrs.append(hftr_vector)
                     # labs.append(0)
+                    gem_id_data_points.append({'ftrs': hftr_vector, 'lab': 0})
 
                 if vflag:
-                    if season == '2014':
-                        tr_ftrs.append(vftr_vector)
-                        tr_labs.append(1)
-                    elif season == '2015':
-                        vl_ftrs.append(vftr_vector)
-                        vl_labs.append(1)
-                    elif season == '2016':
-                        te_ftrs.append(vftr_vector)
-                        te_labs.append(1)
+                    # # if season == '2014':
+                    # #     tr_ftrs.append(vftr_vector)
+                    # #     tr_labs.append(1)
+                    # # elif season == '2015':
+                    # #     vl_ftrs.append(vftr_vector)
+                    # #     vl_labs.append(1)
+                    # # elif season == '2016':
+                    # #     te_ftrs.append(vftr_vector)
+                    # #     te_labs.append(1)
                     # ftrs.append(vftr_vector)
                     # labs.append(1)
+                    gem_id_data_points.append({'ftrs': vftr_vector, 'lab': 1})
                 else:
-                    if season == '2014':
-                        tr_ftrs.append(vftr_vector)
-                        tr_labs.append(0)
-                    elif season == '2015':
-                        vl_ftrs.append(vftr_vector)
-                        vl_labs.append(0)
-                    elif season == '2016':
-                        te_ftrs.append(vftr_vector)
-                        te_labs.append(0)
+                    # # if season == '2014':
+                    # #     tr_ftrs.append(vftr_vector)
+                    # #     tr_labs.append(0)
+                    # # elif season == '2015':
+                    # #     vl_ftrs.append(vftr_vector)
+                    # #     vl_labs.append(0)
+                    # # elif season == '2016':
+                    # #     te_ftrs.append(vftr_vector)
+                    # #     te_labs.append(0)
                     # ftrs.append(vftr_vector)
                     # labs.append(0)
+                    gem_id_data_points.append({'ftrs': vftr_vector, 'lab': 0})
+                
+                # all_data[part].update({gem_id: gem_id_data_points})
+                all_data[gem_id] = gem_id_data_points
 
             # all_data[part] = {'ftrs': ftrs, 'labs': labs}
-            all_data['train'] = {'ftrs': tr_ftrs, 'labs': tr_labs}
-            all_data['validation'] = {'ftrs': vl_ftrs, 'labs': vl_labs}
-            all_data['test'] = {'ftrs': te_ftrs, 'labs': te_labs}
+            # # all_data['train'] = {'ftrs': tr_ftrs, 'labs': tr_labs}
+            # # all_data['validation'] = {'ftrs': vl_ftrs, 'labs': vl_labs}
+            # # all_data['test'] = {'ftrs': te_ftrs, 'labs': te_labs}
         return all_data, augmented_train_ftrs
