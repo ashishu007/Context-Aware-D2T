@@ -21,6 +21,7 @@ gpt2-finetuned/
 output*/
 roberta-finetuned/
 pet_models/
+sportsett/
 
 average_stats/
 doubles/
