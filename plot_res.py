@@ -1,9 +1,10 @@
 import json
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 
-def plot_res(data, themes):
-    N = 4
+def plot_res(data, themes, seasons):
+    N = len(themes)
     ind = np.arange(N)
     width = 0.2
     fig = plt.figure(figsize=(15, 10))
@@ -31,14 +32,25 @@ def plot_res(data, themes):
     plt.ylim(0, 100)
     plt.tight_layout()
     plt.rcParams['font.size'] = 22
-    plt.savefig(f'results/total.png', dpi=300)
+    plt.savefig(f'results/test/total.png', dpi=300)
 
-themes = ['streak', 'standing', 'average', 'double']
-data = {"all": [], "bens": []}
-for theme in themes:
-    res_all = json.load(open(f'./results/{theme}-all.json', 'r'))
-    res_bens = json.load(open(f'./results/{theme}-bens.json', 'r'))
-    data['all'].append(res_all['clf_results']['mf1']*100)
-    data['bens'].append(res_bens['clf_results']['mf1']*100)
+parts = ['test', 'val']
+for part in parts:
+    themes = ['streak', 'standing', 'average', 'double']
+    seasons = ["all", "bens", "carlos", "joels", "dans", "oscars"]
+    data = {season: [] for season in seasons}
+    for theme in themes:
+        for season in seasons:
+            try:
+                res = json.load(open(f'./results/{part}/{theme}-{season}.json', 'r'))
+                data[season].append(res['mean_mf1']*100)
+            except:
+                data[season].append(0)
 
-plot_res(data, themes)
+    # plot_res(data, themes, seasons)
+    df = pd.DataFrame(data, index=themes, columns=seasons)
+    plt.rcParams['font.size'] = 22
+    df.plot(kind='bar', figsize=(15, 10))
+    plt.tight_layout()
+    plt.savefig(f'results/{part}/total.png', dpi=300)
+    # plt.show()

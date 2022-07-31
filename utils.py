@@ -18,7 +18,7 @@ class DataLoader:
         self.theme = theme
         self.season = season
         self.all_data = json.load(open(f'data/{self.theme}/all_data.json'))
-        self.seasonal_splits = json.load(open(f'data/seasonal_splits.json'))
+        self.seasonal_splits = json.load(open(f'data/seasonal_splits_with_authors.json'))
         self.set_splits = self.seasonal_splits[season]
 
     def get_data(self):
@@ -40,8 +40,8 @@ class DataLoader:
 
 
 class Classifier:
-    def __init__(self, algo_name='rf'):
-        self.random_state = 42
+    def __init__(self, algo_name='rf', random_seed=42):
+        self.random_state = random_seed
         self.algo_name = algo_name
         if algo_name == 'rf':
             self.clf = RandomForestClassifier(random_state=self.random_state)

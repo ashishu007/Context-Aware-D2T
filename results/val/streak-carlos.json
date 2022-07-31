@@ -1,0 +1,39 @@
+{
+    "clf_results": {
+        "mf1": 0.55,
+        "acc": 0.9,
+        "f1": 0.16,
+        "prec": 0.12,
+        "rec": 0.21,
+        "fbeta": 0.19
+    },
+    "best_comb": {
+        "clf": "lr",
+        "sampler": "instancehardnessthreshold",
+        "threshold": 0.9886
+    },
+    "mean_mf1": 0.55,
+    "std_mf1": 0.0,
+    "mf1s": [
+        0.55,
+        0.55,
+        0.55,
+        0.55,
+        0.55,
+        0.55,
+        0.55,
+        0.55,
+        0.55,
+        0.55
+    ],
+    "class_dist": {
+        "train": {
+            "0": 519,
+            "1": 515
+        },
+        "test": {
+            "0": 310,
+            "1": 14
+        }
+    }
+}
