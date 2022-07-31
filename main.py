@@ -17,6 +17,7 @@ from sklearn.metrics import fbeta_score, precision_score
 from sklearn.metrics import auc, roc_curve, confusion_matrix
 from sklearn.metrics import recall_score, classification_report
 
+
 def get_clf_report(true, pred):
     mf1 = float(f"{f1_score(true, pred, average='macro'):.2f}")
     acc = float(f"{accuracy_score(true, pred):.2f}")
@@ -76,7 +77,7 @@ def main(THEME='streak', SEASON='all'):
     best_val, best_comb = 0, {'clf': 'rf', 'sampler': 'none', 'threshold': 0}
     for clf in clfs:
         clf_obj = Classifier(algo_name=clf)
-        print(f"This is the {clf.upper()} classifier for {THEME.upper()} theme!!!")
+        print(f"This is the {clf.upper()} classifier for {THEME.upper()} theme on {SEASON} data!!!")
         for sampler in tqdm(samplers):
             sampler_obj = Sampler(method=sampler)
             train_x, train_y, msg = sampler_obj.sample_data(train_x, train_y)
@@ -87,47 +88,72 @@ def main(THEME='streak', SEASON='all'):
             # print(pred_probas.shape, sampler, clf, train_y.shape, Counter(train_y))
             thresholdOptg, thresholdOpty, _, _, _ = get_opt_threshold(val_y, pred_probas)
             for thresh_val in [thresholdOptg, thresholdOpty]:
+                if thresh_val > 1:
+                    thresh_val = thresh_val - 1
                 pred_y = np.where(pred_probas[:, 1] > thresh_val, 1, 0)
                 res_dict, _, _ = get_clf_report(val_y, pred_y)
                 if res_dict['mf1'] > best_val:
                     best_val = res_dict['mf1']
                     best_comb = {'clf': clf, 'sampler': sampler, 'threshold': thresh_val}
-    print(f"Best combination is {best_comb} with {best_val} MacroF1 score on validation set!!!")
+    print(f"Best combination is {best_comb} with {best_val} MacroF1 score on validation set of {THEME.upper()} theme's {SEASON} data!!!")
 
     sampler_obj = Sampler(method=best_comb['sampler'])
     train_x, train_y, _ = sampler_obj.sample_data(train_x, train_y)
 
     mf1s = {'test': [], 'val': []}
+    accs = {'test': [], 'val': []}
+    precs = {'test': [], 'val': []}
+    recs = {'test': [], 'val': []}
     for random_seed in [0, 123, 456, 789, 1024, 4201, 987, 654, 321, 10]:
         clf_obj = Classifier(algo_name=best_comb['clf'], random_seed=random_seed)
         model = clf_obj.train(train_x, train_y)
+        # print(train_x.shape, train_y.shape, val_x.shape, val_y.shape, test_x.shape, test_y.shape)
 
+        # if len(test_x) > 0:
         pred_probas_test = clf_obj.predict_proba(model, test_x)
         pred_y_test = np.where(pred_probas_test[:, 1] > best_comb['threshold'], 1, 0)
         res_dict_test, _, _ = get_clf_report(test_y, pred_y_test)
         mf1s['test'].append(res_dict_test['mf1'])
+        accs['test'].append(res_dict_test['acc'])
+        precs['test'].append(res_dict_test['prec'])
+        recs['test'].append(res_dict_test['rec'])
 
+        # if len(val_x) > 0:
         pred_probas_val = clf_obj.predict_proba(model, val_x)
         pred_y_val = np.where(pred_probas_val[:, 1] > best_comb['threshold'], 1, 0)
         res_dict_val, _, _ = get_clf_report(val_y, pred_y_val)
         mf1s['val'].append(res_dict_val['mf1'])
+        accs['val'].append(res_dict_val['acc'])
+        precs['val'].append(res_dict_val['prec'])
+        recs['val'].append(res_dict_val['rec'])
 
     for part, pred_y in {"test": pred_y_test, "val": pred_y_val}.items():
         true_y = test_y if part == 'test' else val_y
+        if len(true_y) == 0:
+            continue
         res_dict, clf_report, conf_matrix = get_clf_report(true_y, pred_y)
-        # plot_cm(conf_matrix, theme=THEME, season=SEASON, part=part)
         open(f'results/{part}/{THEME}-{SEASON}.txt', 'w').write(clf_report)
         test_res = {}
         test_res['clf_results'] = res_dict
         test_res['best_comb'] = best_comb
         test_res['mean_mf1'] = float(np.mean(mf1s[f'{part}']))
         test_res['std_mf1'] = float(np.std(mf1s[f'{part}']))
+        test_res['mean_acc'] = float(np.mean(accs[f'{part}']))
+        test_res['std_acc'] = float(np.std(accs[f'{part}']))
+        test_res['mean_prec'] = float(np.mean(precs[f'{part}']))
+        test_res['std_prec'] = float(np.std(precs[f'{part}']))
+        test_res['mean_rec'] = float(np.mean(recs[f'{part}']))
+        test_res['std_rec'] = float(np.std(recs[f'{part}']))
         test_res['mf1s'] = mf1s[f'{part}']
+        test_res['accs'] = accs[f'{part}']
+        test_res['precs'] = precs[f'{part}']
+        test_res['recs'] = recs[f'{part}']
         test_res['class_dist'] = {
             "train": {f"{k}": v for k, v in dict(Counter(train_y)).items()},
-            "test": {f"{k}": v for k, v in dict(Counter(true_y)).items()}
+            f"{part}": {f"{k}": v for k, v in dict(Counter(true_y)).items()}
         }
         json.dump(test_res, open(f'results/{part}/{THEME}-{SEASON}.json', 'w'), indent=4)
+        plot_cm(conf_matrix, theme=THEME, season=SEASON, part=part)
 
 
 if __name__ == "__main__":
