@@ -1,0 +1,25 @@
+{
+    "clf_results": {
+        "mf1": 0.44,
+        "acc": 0.66,
+        "f1": 0.08,
+        "prec": 0.04,
+        "rec": 0.53,
+        "fbeta": 0.16
+    },
+    "best_comb": {
+        "clf": "rf",
+        "sampler": "smote",
+        "threshold": "opt_g"
+    },
+    "class_dist": {
+        "train": {
+            "0": 59205,
+            "1": 59205
+        },
+        "test": {
+            "0": 1065,
+            "1": 30
+        }
+    }
+}
