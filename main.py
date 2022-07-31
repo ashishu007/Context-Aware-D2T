@@ -115,7 +115,7 @@ def main(THEME='streak', SEASON='all'):
     for part, pred_y in {"test": pred_y_test, "val": pred_y_val}.items():
         true_y = test_y if part == 'test' else val_y
         res_dict, clf_report, conf_matrix = get_clf_report(true_y, pred_y)
-        plot_cm(conf_matrix, theme=THEME, season=SEASON, part=part)
+        # plot_cm(conf_matrix, theme=THEME, season=SEASON, part=part)
         open(f'results/{part}/{THEME}-{SEASON}.txt', 'w').write(clf_report)
         test_res = {}
         test_res['clf_results'] = res_dict

@@ -49,6 +49,7 @@ for part in parts:
 
     # plot_res(data, themes, seasons)
     df = pd.DataFrame(data, index=themes, columns=seasons)
+    print(df)
     plt.rcParams['font.size'] = 22
     df.plot(kind='bar', figsize=(15, 10))
     plt.tight_layout()
