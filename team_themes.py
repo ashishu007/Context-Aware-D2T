@@ -9,6 +9,7 @@ class TeamStreak:
         self.ee_obj = ExtractEntities()
         self.dataset = load_dataset('GEM/sportsett_basketball')
         self.team_names = json.load(open('data/all_teams.json'))
+        self.team_popularity = json.load(open('data/teams_popularity.json'))
 
     def team_streak_text_ftr(self, streak, broken_streak, team_name):
         """
@@ -32,7 +33,8 @@ class TeamStreak:
         ids = {'W': 1, 'L': 2}
         team_id = self.team_names[team_name]
         # ftrs = [team_id, streak['count'], ids[streak['type']]]
-        ftrs = {"team_name": team_id, "streak_count": streak['count'], "streak_type": ids[streak['type']]}
+        team_pop = self.team_popularity[team_name] if team_name in self.team_popularity else 0
+        ftrs = {"team_name": team_id, "team_popularity": team_pop, "streak_count": streak['count'], "streak_type": ids[streak['type']]}
         if 'type' in broken_streak:
             # ftrs.append(ids[broken_streak['type']])
             ftrs['broken_streak_type'] = ids[broken_streak['type']]
@@ -158,6 +160,7 @@ class TeamStanding:
         self.ee_obj = ExtractEntities()
         self.dataset = load_dataset('GEM/sportsett_basketball')
         self.team_names = json.load(open('data/all_teams.json'))
+        self.team_popularity = json.load(open('data/teams_popularity.json'))
 
     def team_standing_text_ftr(self, info):
         """
@@ -189,7 +192,10 @@ class TeamStanding:
         ftrs[11], ftrs[12], ftrs[13], ftrs[14], ftrs[15]: next_1_standing, next_1_wins, next_1_losses, next_1_win_perct, next_1_season_date
         cat_ftrs = [0]
         """
-        ftr_vector = {'team_name': self.team_names[info["current"]["team"]]}
+        team_name = self.team_names[info["current"]["team"]]
+        team_pop = self.team_popularity[team_name] if team_name in self.team_popularity else 0
+        ftr_vector = {'team_name': team_name, 'team_pop': team_pop}
+
         current_team_ftrs = ['standing', 'wins', 'losses', 'win_perct', 'season_date']
         other_team_ftrs = ['standing', 'wins', 'losses', 'win_perct', 'win_diff']
 

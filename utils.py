@@ -59,7 +59,7 @@ class Classifier:
 
     def predict(self, model, X):
         return model.predict(X)
-    
+
     def predict_proba(self, model, X):
         return model.predict_proba(X)
 

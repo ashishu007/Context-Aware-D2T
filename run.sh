@@ -4,7 +4,7 @@ gpu=$1
 
 # for theme in 'streak' 'standing' 'average' 'double'
 
-for theme in 'streak' 'standing' 'average' 'double'
+for theme in 'streak' 'standing'
 do
     echo "Running $theme theme on GPU $gpu"
     for season in 'all' 'bens' 'carlos' 'joels' 'dans' 'oscars'
